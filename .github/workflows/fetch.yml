@@ -1,0 +1,40 @@
+name: fetch nodeseek hotlist
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nodeseek-hotlist
+  cancel-in-progress: true
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Fetch NodeSeek
+        run: python scripts/fetch_nodeseek.py
+      - name: Commit updated data
+        run: |
+          git config user.name "sunny-agent"
+          git config user.email "sunny-agent@users.noreply.github.com"
+          git add data/nodeseek-hotlist.json
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "update nodeseek hotlist"
+            git push
+          fi
